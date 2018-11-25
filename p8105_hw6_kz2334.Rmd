@@ -8,7 +8,6 @@ Load required packages.
 
 ```{r set up, include = FALSE}
 library(tidyverse)
-library(viridis)
 library(purrr)
 
 theme_set(theme_bw() + theme(legend.position = "bottom"))
@@ -58,7 +57,7 @@ balt_logistic %>%
     conf_low_or = exp(confint(balt_logistic, level = 0.95)[,1]),
     conf_high_or = exp(confint(balt_logistic, level = 0.95)[,2])) %>% 
   filter(term == "victim_racenon-white") %>% 
-  select(OR, starts_with("conf")) %>% 
+  select(., OR, starts_with("conf")) %>% 
   knitr::kable(digit = 3)
 ```
 
@@ -140,4 +139,101 @@ birth_data %>%
 ```
 
 Follow the dictionary of the dataset, I convert 4 variables to factor. Then I find out there is no  NA value in each variable. Then I check if there are zero values. I find that there is one missing value in family income and one missing value in mother’s age at menarche. Luckily this is a small number.
+
+####build my own model
+
+---
+
+Check corrolations between variables.
+
+```{r 2.2, warning = FALSE}
+#omit observations have missing values
+birth_data = birth_data%>% 
+  filter(menarche != 0 & fincome != 0)
+
+#check corrolation
+birth_data %>% 
+  select_if(is.numeric) %>%
+  select(bwt, everything()) %>% 
+  cor() %>% 
+  knitr::kable(digits = 3)
+```
+
+We can find that variables pnumsga and pnumlbw have NA value of corrolation of any other variables because the values of them equals to zero in all observartions. So we can exclude them from the model. The corrolation of responce and parity is  -0.008, the closet to zero. So I decide to exclude it.
+
+---
+
+Use VIF to select variables untill all preditors have VIF less than 10.
+
+```{r 2.3}
+#delete varibles mentioned above
+birth_select1 = birth_data %>% 
+  select_if(is.numeric) %>%
+  select(bwt, everything(), - pnumsga, - pnumlbw, - parity) 
+
+#use vif to select variables
+model1 = lm(bwt ~., birth_select1)  
+model1
+
+#delete NA variable wtgain
+
+birth_select2 = birth_select1 %>% 
+  select(-wtgain)
+
+model2 = lm(bwt ~., birth_select2)  
+HH::vif(model2) 
+
+#delete ppwt with largest vif
+
+birth_select3 = birth_select2 %>% 
+  select(-ppwt)
+
+model3 = lm(bwt ~., birth_select3)  
+HH::vif(model3) 
+```
+
+Now we can see that all variables left in the model have vif less than 10, we conclude that there is no multicollinearity among them.
+
+---
+
+Then we use AIC criterion for var selection then keep variables with p-value < 0.05.
+
+```{r 2.4, message = FALSE}
+birth_select = birth_data %>%
+  select(- pnumsga, - pnumlbw, - parity, - wtgain, - ppwt) 
+
+#use backward method for AIC criterion
+reg1 = lm(bwt ~., birth_select) 
+reg2 = step(reg1, direction='backward')  
+summary(reg2)
+
+#remove mheight since its p-value is the largest and > 0.05
+reg3 = update(reg2, . ~ . - mheight) 
+summary(reg3)
+
+#remove fincome since its p-value is the largest and > 0.05
+reg4 = update(reg3, . ~ . - fincome) 
+summary(reg4) %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
+
+summary(reg4) %>% 
+  broom::glance() %>% 
+  knitr::kable(digits = 3)
+```
+
+The factor mrace variable has four categories. Only one category has p-value > 0.05, and close to 0.05. I decide to keep this variable.
+
+Then we have a regression model for birthweight, with 2 factor predictors and 6 numeric predictors.The adjusted $R^2$ is 0.717, which means the model is comparatively good. The F statistics in global test is 1098.414, p-value is 0. The model is significant.
+
+---
+
+
+
+```{r 2.5}
+birth_select %>% 
+  modelr::add_predictions(reg4) %>% 
+  modelr::add_residuals(reg4) %>% 
+  ggplot(aes(x = pred, y = resid)) + geom_point()
+```
 
