@@ -97,3 +97,32 @@ homicide_md %>%
   knitr::kable(digit = 3)
 ```
 
+##Problem 2
+
+Load and clean the data for regression analysis.
+
+```{r 2.1, message = FALSE}
+birth_data = read_csv("./data/birthweight.csv")
+
+birth_data = birth_data %>%
+  #convert categorical variables to factor
+  mutate( babysex = as.factor(babysex),
+          frace = as.factor(frace),
+          malform = as.factor(malform),
+          mrace = as.factor(mrace)
+          )
+
+#check NA values
+birth_data %>% 
+  summarise_all(funs(sum(is.na(.)))) %>% 
+  knitr::kable()
+
+#check zero-equal values
+birth_data %>% 
+  summarise_all(funs(sum(. == 0))) %>% 
+  knitr::kable()
+
+```
+
+Follow the dictionary of the dataset, I convert 4 variables to factor. Then I find out there is no  NA value in each variable. Then I check if there are zero values. I find that there is one missing value in family income and one missing value in mother’s age at menarche. Luckily this is a small number.
+
