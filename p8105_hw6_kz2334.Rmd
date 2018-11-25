@@ -16,6 +16,7 @@ knitr::opts_chunk$set(
 
 library(tidyverse)
 library(viridis)
+library(purrr)
 
 theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
@@ -48,6 +49,8 @@ homicide_md = homicide_data %>%
   
 ```
 
+---
+
 Run logistic regression for the city of Baltimore, MD. Find out the CI and estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.
 
 ```{r 1.4, message = FALSE}
@@ -56,7 +59,8 @@ balt_logistic = homicide_md %>%
   glm(status ~ victim_age + victim_sex + victim_race, data = ., family = binomial())
 
 balt_logistic %>% 
-  broom::tidy() %>% 
+  broom::tidy() %>%
+  #extract OR and CIs for OR
   mutate(OR = exp(estimate),
     conf_low_or = exp(confint(balt_logistic, level = 0.95)[,1]),
     conf_high_or = exp(confint(balt_logistic, level = 0.95)[,2])) %>% 
@@ -65,5 +69,31 @@ balt_logistic %>%
   knitr::kable(digit = 3)
 ```
 
-We can see that adjusted OR for solving homicides comparing non-white victims to white victims is 0.441. 95% CI is (0.312, 0.620). The OR solving homicides for non-white victims is 0.441 times of that for white victims, which means non-white victims are less likely to be with solving homicides.
+We can see that adjusted OR for solving homicides comparing non-white victims to white victims in Baltimore is 0.441. 95% CI is (0.312, 0.620). The OR solving homicides for non-white victims is 0.441 times of that for white victims, which means non-white victims are less likely to be with solving homicides.
+
+---
+
+Run glm for each of the cities, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims. Create a dataframe with estimated ORs and CIs for each city.
+
+```{r 1.5, message = FALSE, warning = FALSE}
+homicide_md %>% 
+  group_by(city_state) %>% 
+  nest() %>%
+  #run glm, extract estimates and CIs
+  mutate(logistic = map(data, ~glm(status ~ victim_age + victim_sex + victim_race, 
+                                   data = .x, family = binomial())),
+         result = map(logistic, broom::tidy),
+         conf = map(logistic, confint), 
+         result_comb = map2(result, conf, cbind)) %>%
+  select(city_state, result_comb) %>% 
+  unnest() %>%
+  filter(term == "victim_racenon-white") %>%
+  janitor::clean_names() %>%
+  #calculate OR and CIs
+  mutate(OR = exp(estimate),
+    conf_low_or = exp(x2_5_percent),
+    conf_high_or = exp(x97_5_percent)) %>% 
+  select(city_state, OR, starts_with("conf")) %>% 
+  knitr::kable(digit = 3)
+```
 
