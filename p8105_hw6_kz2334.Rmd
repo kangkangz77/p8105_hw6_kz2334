@@ -4,8 +4,6 @@ author: "Kangkang Zhang"
 output: github_document
 ---
 
-Load required packages.
-
 ```{r set up, include = FALSE}
 library(tidyverse)
 library(purrr)
@@ -18,7 +16,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom", plot.title = element_te
 ```
 
 
-##Problem 1
+#Problem 1
 
 Import the data. 
 ```{r 1.1 import, message = FALSE} 
@@ -115,9 +113,9 @@ homicide_city %>%
 
 According to the plot, most of the cities have ORs less than 1, which means in those cities, non-white victims are less likely to be with solving homicides. Boston has the smallest value of OR, closing to zero. Tampa has the largest value of OR, slightly larger than 1.
 
-##Problem 2
+#Problem 2
 
-####Load and clean the data
+###Load and clean the data
 
 ```{r 2.1, message = FALSE}
 birth_data = read_csv("./data/birthweight.csv")
@@ -147,7 +145,7 @@ birth_data = birth_data%>%
 
 Follow the dictionary of the dataset, I convert 4 variables to factor. Then I find out there is no  NA value in each variable. Then I check if there are zero values. I find that there is one missing value in family income and one missing value in mother’s age at menarche. Luckily this is a small number.
 
-####build my own model
+###build my own model
 
 ---
 
@@ -256,7 +254,7 @@ birth_select %>%
   ggplot(aes(x = pred, y = resid)) + geom_point()
 ```
 
-####Model comparison
+###Model comparison
 
 Split train and test sets for 100 times cross validation.
 ```{r}
