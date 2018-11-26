@@ -249,7 +249,7 @@ Then we have a regression model for birthweight, with 2 factor predictors and 6 
 
 Draw a plot of model residuals against fitted values.
 
-```{r 2.5}
+```{r 2.5, fig.align= 'center'}
 birth_select %>% 
   add_predictions(reg4) %>% 
   add_residuals(reg4) %>% 
@@ -258,7 +258,7 @@ birth_select %>%
 
 ####Model comparison
 
-Split train and test sets for cross validation.
+Split train and test sets for 100 times cross validation.
 ```{r}
 cv_df = 
   crossv_mc(birth_data, 100) 
@@ -280,14 +280,26 @@ cv_df_result =
          rmse_2 = map2_dbl(mod_2, test, ~rmse(model = .x, data = .y)))
 ```
 
-Make a plot to show the distribution of rmseeach model.
+---
 
-```{r}
+Make a violin plot to show the distribution of rmse for each model.
+
+```{r, fig.align= 'center'}
 cv_df_result %>% 
   select(starts_with("rmse")) %>% 
-  gather(key = model, value = rmse) %>% 
-  mutate(model = str_replace(model, "rmse_", ""),
-         model = fct_inorder(model)) %>% 
-  ggplot(aes(x = model, y = rmse)) + geom_violin()
+  gather(key = model, value = rmse) %>%
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin() +
+  scale_x_discrete(labels = c("My Model", "Model 1", "Model 2")) + 
+  labs(
+    title = "Distribution of RMSE for each model",
+    x = "Model",
+    y = "RMSE"
+  ) 
 ```
+
+Based on e plot, we can see my model has the smallest RMSE among those models. It shows that adding more reasonable variables or interactions into the model can lead to improvements in predictive accuracy. But in the mean times it also results in model complexity. In my opinion I would chooce my model to predict birth weight.
+
+
+
 
